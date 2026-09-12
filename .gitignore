@@ -1,0 +1,19 @@
+# Rust build artifacts
+target/
+
+# Local ROMs and emulator save files
+*.gb
+*.gbc
+*.gba
+*.sav
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and local environment files
+*.log
+.env
+.env.*

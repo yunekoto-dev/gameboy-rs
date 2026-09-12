@@ -1,0 +1,24 @@
+[package]
+name = "gameboy-rs"
+version = "0.7.0"
+edition = "2021"
+description = "A Game Boy and Game Boy Color emulator written in Rust, with a retro picker UI for launching games without the command line."
+authors = ["Yunekoto"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/yunekoto-dev/gameboy-rs"
+homepage = "https://github.com/yunekoto-dev/gameboy-rs"
+
+[dependencies]
+sdl2 = { version = "0.38", features = ["bundled"] }
+rfd = "0.14"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+[[bin]]
+name = "gameboy-rs"
+path = "src/main.rs"
