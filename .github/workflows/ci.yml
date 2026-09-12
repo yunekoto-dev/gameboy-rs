@@ -43,6 +43,11 @@ jobs:
         with:
           cmakeVersion: 3.31.6
 
+      - name: Select Visual Studio generator
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Add-Content $env:GITHUB_ENV 'CMAKE_GENERATOR=Visual Studio 17 2022'
+
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
