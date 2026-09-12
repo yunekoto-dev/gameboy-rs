@@ -2,6 +2,8 @@ use gameboy_rs::cartridge::{Cartridge, Mapper};
 use gameboy_rs::cpu::Cpu;
 use gameboy_rs::model::HardwareModel;
 use gameboy_rs::bus::Bus;
+use gameboy_rs::emulator::Emulator;
+use std::fs;
 
 #[test]
 fn cpu_post_boot_state() {
@@ -81,6 +83,23 @@ fn cgb_cartridge_selects_color_model() {
     let cart = Cartridge::new(rom).unwrap();
     assert_eq!(cart.model(), HardwareModel::Cgb);
     assert!(cart.cgb_compatible());
+}
+
+#[test]
+fn cgb_battery_save_is_loaded_at_startup() {
+    let mut rom = vec![0u8; 0x8000];
+    rom[0x143] = 0x80;
+    rom[0x147] = 0x13;
+    rom[0x149] = 0x03;
+    let save_path = std::env::temp_dir().join(format!("gameboy-rs-save-{}.sav", std::process::id()));
+    let mut save = vec![0u8; 0x8000];
+    save[0x1234] = 0x5A;
+    fs::write(&save_path, save).unwrap();
+
+    let mut emulator = Emulator::from_rom(rom, Some(&save_path)).unwrap();
+    emulator.bus.write8(0x0000, 0x0A);
+    assert_eq!(emulator.bus.read8(0xB234), 0x5A);
+    fs::remove_file(save_path).unwrap();
 }
 
 #[test]

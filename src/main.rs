@@ -47,9 +47,9 @@ fn main(){
     let rom=fs::read(&rom_path).unwrap_or_else(|e|{eprintln!("failed to read {}: {e}",rom_path.display());process::exit(1)});
     let save=cli.save_path.or_else(||Some(rom_path.with_extension("sav")));
     let mut machine=Emulator::from_rom(rom,save.as_deref()).unwrap_or_else(|e|{eprintln!("failed to start Game Boy: {e}");process::exit(1)});
-    println!("ROM: {} | Model: {} | Title: {}",rom_path.display(),machine.model().name(),machine.bus.cart.title());
-    if cli.headless{let n=cli.cycles.unwrap_or(1_000_000);if let Err(e)=machine.run_cycles(n){eprintln!("emulation error: {e}");process::exit(1)}let _=machine.save();return;}
-    if let Err(e)=run_sdl(&mut machine,cli.frames.unwrap_or(u64::MAX)){eprintln!("frontend error: {e}");let _=machine.save();process::exit(1)}let _=machine.save();
+    println!("ROM: {} | Model: {} | Title: {} | Save: {}",rom_path.display(),machine.model().name(),machine.bus.cart.title(),if machine.save_loaded(){"loaded"}else{"not found or not battery-backed"});
+    if cli.headless{let n=cli.cycles.unwrap_or(1_000_000);if let Err(e)=machine.run_cycles(n){eprintln!("emulation error: {e}");process::exit(1)};if let Err(e)=machine.save(){eprintln!("failed to save game: {e}");process::exit(1)}return;}
+    if let Err(e)=run_sdl(&mut machine,cli.frames.unwrap_or(u64::MAX)){eprintln!("frontend error: {e}");if let Err(save_error)=machine.save(){eprintln!("failed to save game: {save_error}");}process::exit(1)};if let Err(e)=machine.save(){eprintln!("failed to save game: {e}");process::exit(1)}
 }
 
 fn run_sdl(machine:&mut Emulator,target_frames:u64)->Result<(),String>{

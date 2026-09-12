@@ -10,12 +10,14 @@ use crate::{DMG_CLOCK_HZ, SCREEN_HEIGHT, SCREEN_WIDTH};
 pub struct Emulator {
     pub cpu: Cpu,
     pub bus: Bus,
+    save_loaded: bool,
 }
 
 #[derive(Debug)]
 pub enum EmuError {
     Cartridge(CartridgeError),
     Cpu(CpuError),
+    Save(std::io::Error),
 }
 
 impl std::fmt::Display for EmuError {
@@ -23,6 +25,7 @@ impl std::fmt::Display for EmuError {
         match self {
             Self::Cartridge(e) => write!(f, "cartridge: {e}"),
             Self::Cpu(e) => write!(f, "cpu: {e}"),
+            Self::Save(e) => write!(f, "save: {e}"),
         }
     }
 }
@@ -35,11 +38,12 @@ impl Emulator {
     pub fn from_rom(rom: Vec<u8>, save_path: Option<&Path>) -> Result<Self, EmuError> {
         let cart = Cartridge::new(rom)?;
         let mut bus = Bus::new(cart);
+        let mut save_loaded = false;
         if let Some(path) = save_path {
-            bus.cart.load_save(path);
+            save_loaded = bus.cart.load_save(path).map_err(EmuError::Save)?;
         }
         let cpu = Cpu::post_boot(bus.is_cgb());
-        Ok(Self { cpu, bus })
+        Ok(Self { cpu, bus, save_loaded })
     }
 
     pub fn run_frame(&mut self) -> Result<(), EmuError> {
@@ -71,6 +75,8 @@ impl Emulator {
     }
 
     pub fn model(&self) -> HardwareModel { self.bus.model() }
+
+    pub fn save_loaded(&self) -> bool { self.save_loaded }
 
     pub fn framebuffer(&self) -> &[u32] {
         &self.bus.ppu.frame

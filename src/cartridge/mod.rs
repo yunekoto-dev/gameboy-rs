@@ -71,13 +71,21 @@ impl Cartridge {
     pub fn mapper_name(&self) -> &'static str { match &self.mbc { Mbc::RomOnly => "ROM ONLY", Mbc::Mbc1 {..} => "MBC1", Mbc::Mbc2 {..} => "MBC2", Mbc::Mbc3 {..} => "MBC3", Mbc::Mbc5 {..} => "MBC5" } }
     pub fn battery_backed(&self) -> bool { self.battery }
     pub fn set_save_path(&mut self, path: impl AsRef<Path>) { self.save_path = Some(path.as_ref().to_path_buf()); }
-    pub fn load_save(&mut self, path: &Path) {
+    pub fn load_save(&mut self, path: &Path) -> std::io::Result<bool> {
         self.save_path = Some(path.to_path_buf());
-        if !self.battery { return; }
-        if let Ok(data) = fs::read(path) { let n = self.ram.len().min(data.len()); self.ram[..n].copy_from_slice(&data[..n]); }
+        if !self.battery { return Ok(false); }
+        match fs::read(path) {
+            Ok(data) => {
+                let n = self.ram.len().min(data.len());
+                self.ram[..n].copy_from_slice(&data[..n]);
+                Ok(true)
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(error) => Err(error),
+        }
     }
     pub fn save(&mut self) -> std::io::Result<()> {
-        if !(self.battery && self.dirty) { return Ok(()); }
+        if !self.battery { return Ok(()); }
         if let Some(path) = &self.save_path {
             if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
             fs::write(path, &self.ram)?;
